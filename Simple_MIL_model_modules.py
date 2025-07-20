@@ -335,7 +335,6 @@ class MIL_Parallel_Head(nn.Module):
         self.class_num = class_num
         self.tgi_clustering_block_Vanilla = TgiClustering(k_nums=3, sel_dis='l1')
         self.tgi_clustering_block = Sef_Cluster(k_nums=3, sel_dis='liad')
-        self.dataset = dataset
 
 
 
