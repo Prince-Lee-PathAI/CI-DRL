@@ -167,12 +167,12 @@ if __name__ == '__main__':
                 default=f'/data/MIL/Datasets/{dataset_root}/Test')
     ### Parallel save
     paras.add_argument('--weights_save_path', type=str,
-                        default=f'/data/MIL/MMvC/Weights_Result/{dataset_root}')
+                        default=f'/data/MIL')
     ### Parallel test
     paras.add_argument('--test_weights_feature', type=str,
-                        default=r'/data/MIL/MMvC/Weights_Result/DHMC_Lung_new/SwinT_sota_Feature_ValAcc_0.8444444444444444_Epoch76.pth')
+                        default=r'/data/MIL/')
     paras.add_argument('--test_weights_head', type=str,
-                        default=r'/data/MIL/MMvC/Weights_Result/DHMC_Lung_new/SwinT_sota_Head_ValAcc_0.8444444444444444_Epoch76.pth')
+                        default=r'/data/MIL/')
 
     ### Pretrained
     paras.add_argument('--pretrained_weights_path', type=str,
