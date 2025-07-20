@@ -1,7 +1,5 @@
 
 import time
-
-from SwinT_models.models.swin_transformer import SwinTransformer
 from torch import nn
 import torch
 import random
