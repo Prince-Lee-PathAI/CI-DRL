@@ -122,8 +122,6 @@ def training_for_parallel(mil_feature=None, mil_head=None, train_loader=None, va
                                 groupIn_y = mil_feature(
                                     img_data[max_input_len * img_data_i:(max_input_len * (img_data_i + 1)), :, :,
                                     :].cuda())
-
-
                                 pre_y = torch.cat((pre_y, groupIn_y))
                                 torch.cuda.empty_cache()
                             if group_count * max_input_len < img_data.shape[0]:
@@ -133,8 +131,8 @@ def training_for_parallel(mil_feature=None, mil_head=None, train_loader=None, va
                                 pass
 
                     pre_y = pre_y[1:]
-                    pre_y, min_dis, max_dis = mil_head(pre_y)
-                    loss_value = loss_fn(pre_y, img_label) + min_dis - max_dis
+                    pre_y, d_reg = mil_head(pre_y)
+                    loss_value = loss_fn(pre_y, img_label) - 0.1 * d_reg
                 scaler.scale(loss_value).backward()
                 scaler.step(rmp_optim)
                 scaler.update()
@@ -157,9 +155,9 @@ def training_for_parallel(mil_feature=None, mil_head=None, train_loader=None, va
                         else:
                             pass
                 pre_y = pre_y[1:]
-                pre_y, min_dis, max_dis = mil_head(pre_y)
+                pre_y, d_reg = mil_head(pre_y)
 
-                loss_value = loss_fn(pre_y, img_label) + min_dis - max_dis
+                loss_value = loss_fn(pre_y, img_label) - 0.1 * d_reg
                 loss_value.backward()
                 rmp_optim.step()
                 rmp_optim.zero_grad()
