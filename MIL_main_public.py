@@ -7,7 +7,7 @@ import os
 import random
 
 from SwinT_models.flash_models.swin_transformer import SwinTransformer
-from Simple_MIL_model_modules import MIL_Parallel_Feature, MIL_Parallel_Head_ub
+from Simple_MIL_model_modules import MIL_Parallel_Feature, MIL_Parallel_Head
 from Utils.fit_functions import testing_for_parallel, training_for_parallel,extracting_feat_for_c16,interpret_bag_for_lung,Cluster_vis_lung
 from Utils.Setup_Seed import setup_seed
 from Utils.Read_MIL_Datasets import Read_MIL_Datasets
@@ -201,7 +201,7 @@ if __name__ == '__main__':
     mil_feature = MIL_Parallel_Feature(base_model=swinT_base, img_size=args.img_size)
     mil_feature = mil_feature.cuda()
     mil_feature = DataParallel(mil_feature, device_ids=args.parallel_gpu_ids)
-    mil_head = MIL_Parallel_Head_ub(base_model=swinT_base, class_num=args.class_num,
+    mil_head = MIL_Parallel_Head(base_model=swinT_base, class_num=args.class_num,
                                     model_stats=args.run_mode, seed=args.random_seed,
                                     batch_size=args.batch_size, bags_len=args.bags_len,
                                     feat_extract=args.feat_extract, bag_weight=args.bag_weight,
