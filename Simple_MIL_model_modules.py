@@ -2,7 +2,6 @@
 import time
 
 from SwinT_models.models.swin_transformer import SwinTransformer
-from Utils.GFK_torch import GFK
 from torch import nn
 import torch
 import random
@@ -322,96 +321,100 @@ class MIL_Parallel_Feature(nn.Module):
 
 
 class MIL_Parallel_Head(nn.Module):
-    def __init__(self, base_model = None, class_num = 3, seed=None, batch_size = 2, bags_len = 1042, model_stats = 'train', feat_extract=False, bag_weight=False, cluster_vis=False):
-        super(MIL_Parallel_Head, self).__init__()
+    def __init__(self, base_model = None, class_num = 3, dataset=None, seed=None, cluster_vis=False, batch_size = 2, bags_len = 1042, model_stats = 'train',abla_type='tic',feat_extract=False, bag_weight=False):
+        super(TicMIL_Parallel_Head, self).__init__()
         self.head = base_model.head
         self.batch_size = batch_size
         self.bags_len = bags_len
         self.feat_extract = feat_extract
-        self.bag_weight = bag_weight
         self.cluster_vis = cluster_vis
+        self.bag_weight = bag_weight
         self.seed = seed
         self.model_stats = model_stats
+        self.abla_type = abla_type
         self.class_num = class_num
-        self.tgi_clustering_block_Vanilla = TgiClustering(k_nums=3,sel_dis='l2')
+        self.tgi_clustering_block_Vanilla = TgiClustering(k_nums=3, sel_dis='l1')
         self.tgi_clustering_block = Sef_Cluster(k_nums=3, sel_dis='liad')
+        self.dataset = dataset
 
 
 
     def forward(self, x):
-        # clustering guiding
-        y = torch.reshape(x, (int(x.shape[0] / self.bags_len), self.bags_len, x.shape[1]))
+	y = torch.reshape(x, (int(x.shape[0] / self.bags_len), self.bags_len, x.shape[1]))
         if self.bag_weight:
             bag_w = y[:]
             return bag_w
-        min_dis = torch.zeros((1)).cuda()
-        max_dis = torch.zeros((1)).cuda()
+        # divided into batch again
         for i in range(y.shape[0]):
-            gfk = GFK(dim=20)
-            y_s = y[i][0:961, :]
-            y_t = y[i][961:, :]
-            with torch.no_grad():
-                _, unlabelled_y, target_guiding_y = gfk.fit(y_s, y_t, norm_inputs=True)
-
-            assigned_sets = self.tgi_clustering_block.forward(unlabelled_y)
-            assign_y_0 = unlabelled_y[assigned_sets['0'], :]
-            assign_y_1 = unlabelled_y[assigned_sets['1'], :]
-            assign_y_2 = unlabelled_y[assigned_sets['2'], :]
-
-            if assign_y_0.shape == (0, 768) or assign_y_1.shape == (0, 768) or assign_y_2.shape == (0, 768):
-                dis_0_tar = torch.tensor(0).cuda(0)
-                dis_1_tar = torch.tensor(0).cuda(0)
-                dis_2_tar = torch.tensor(0).cuda(0)
+            original_group = y[i]
+            assigned_sets = self.tgi_clustering_block.forward(original_group)
+            all_indices = torch.arange(original_group.size(0), device=original_group.device)
+            indices_0 = torch.tensor(assigned_sets['0'], device=original_group.device)
+            indices_1 = torch.tensor(assigned_sets['1'], device=original_group.device)
+            indices_2 = torch.tensor(assigned_sets['2'], device=original_group.device)
+            # print(indices_1.shape,indices_2.shape,indices_0.shape)
+            if indices_1.shape == torch.Size([0]) or indices_2.shape == torch.Size([0]) or indices_0.shape == torch.Size([0]):
+                c_0_rate = torch.tensor(1).cuda(0)
+                c_1_rate = torch.tensor(1).cuda(0)
+                c_2_rate = torch.tensor(1).cuda(0)
             else:
-                dis_0_tar = self.tgi_clustering_block.instance_adaptive_distance(
-                    torch.mean(target_guiding_y, dim=0, keepdim=True).permute(1, 0),
-                    torch.mean(assign_y_0, dim=0, keepdim=True).permute(1, 0))
-                dis_1_tar = self.tgi_clustering_block.instance_adaptive_distance(
-                    torch.mean(target_guiding_y, dim=0, keepdim=True).permute(1, 0),
-                    torch.mean(assign_y_1, dim=0, keepdim=True).permute(1, 0))
-                dis_2_tar = self.tgi_clustering_block.instance_adaptive_distance(
-                    torch.mean(target_guiding_y, dim=0, keepdim=True).permute(1, 0),
-                    torch.mean(assign_y_2, dim=0, keepdim=True).permute(1, 0))
-
-                ###adaptive dis
-            if (dis_0_tar == torch.tensor(0).cuda(0)) or (dis_1_tar == torch.tensor(0).cuda(0)) or (
-                    dis_2_tar == torch.tensor(0).cuda(0)):
-                dis_0_rate = torch.tensor(0).cuda(0)
-                dis_1_rate = torch.tensor(0).cuda(0)
-                dis_2_rate = torch.tensor(0).cuda(0)
-            else:
-                dis_0_rate = (dis_0_tar / (dis_0_tar + dis_1_tar + dis_2_tar)) * 0.1
-                dis_1_rate = (dis_1_tar / (dis_0_tar + dis_1_tar + dis_2_tar)) * 0.1
-                dis_2_rate = (dis_2_tar / (dis_0_tar + dis_1_tar + dis_2_tar)) * 0.1
-
+                group_without_0 = original_group[~torch.isin(all_indices, indices_0)]
+                group_without_1 = original_group[~torch.isin(all_indices, indices_1)]
+                group_without_2 = original_group[~torch.isin(all_indices, indices_2)]
+                original_group_prob = F.softmax(self.head(torch.mean(original_group,dim=0,keepdim=True)),dim=1)
+                # KL
+                group_without_0_prob = F.log_softmax(self.head(torch.mean(group_without_0,dim=0,keepdim=True)),dim=1)
+                group_without_1_prob =  F.log_softmax(self.head(torch.mean(group_without_1,dim=0,keepdim=True)),dim=1)
+                group_without_2_prob =  F.log_softmax(self.head(torch.mean(group_without_2,dim=0,keepdim=True)),dim=1)
+                js_0 = F.kl_div(group_without_0_prob, original_group_prob)
+                js_1 = F.kl_div(group_without_1_prob, original_group_prob)
+                js_2 = F.kl_div(group_without_2_prob, original_group_prob)
+		    
+                # JS
+                # group_without_0_prob = F.softmax(self.head(torch.mean(group_without_0,dim=0,keepdim=True)),dim=1)
+                # group_without_1_prob = F.softmax(self.head(torch.mean(group_without_1,dim=0,keepdim=True)),dim=1)
+                # group_without_2_prob = F.softmax(self.head(torch.mean(group_without_2,dim=0,keepdim=True)),dim=1)
+                # m_0 = torch.log((group_without_0_prob+original_group_prob)/2)
+                # m_1 = torch.log((group_without_1_prob+original_group_prob)/2)
+                # m_2 = torch.log((group_without_2_prob+original_group_prob)/2)
+                # js_0 = 0.5 * F.kl_div(m_0, group_without_0_prob) + 0.5 * F.kl_div(m_0, original_group_prob)
+                # js_1 = 0.5 * F.kl_div(m_1, group_without_1_prob) + 0.5 * F.kl_div(m_1, original_group_prob)
+                # js_2 = 0.5 * F.kl_div(m_2, group_without_2_prob) + 0.5 * F.kl_div(m_2, original_group_prob)
+		
+                # by proportion
+                c_0_rate = (js_0 / (js_0 + js_1 + js_2))
+                c_1_rate = (js_1 / (js_0 + js_1 + js_2))
+                c_2_rate = (js_2 / (js_0 + js_1 + js_2))
+	    
             #  Cluser idx
             dis_rates = {
-                '0': dis_0_rate,
-                '1': dis_1_rate,
-                '2': dis_2_rate
+                '0': c_0_rate,
+                '1': c_1_rate,
+                '2': c_2_rate
             }
-
-            sorted_assigned_sets = [assigned_sets[k] for k in sorted(dis_rates, key=dis_rates.get)]
-
-            min_dis += min([dis_0_tar, dis_1_tar, dis_2_tar])
-            max_dis += max([dis_0_tar, dis_1_tar, dis_2_tar])
-
-            y[i][0:961, :][assigned_sets['0'], :] = (1 - dis_0_rate) * y[i][0:961, :][assigned_sets['0'], :]
-            y[i][0:961, :][assigned_sets['1'], :] = (1 - dis_1_rate) * y[i][0:961, :][assigned_sets['1'], :]
-            y[i][0:961, :][assigned_sets['2'], :] = (1 - dis_2_rate) * y[i][0:961, :][assigned_sets['2'], :]
-
+	    index_list = sorted(dis_rates, key=dis_rates.get) # min - median - max 
+	    max_index = index_list[-1]
+	    max_instances_indices = [indices_0,indices_1,indices_2][int(max_index)]
+            d_reg = self.tgi_clustering_block.instance_adaptive_distance(torch.mean(original_group[max_instances_indices], dim=0, keepdim=True).permute(1, 0),
+                   torch.mean(original_group[~torch.isin(all_indices, max_instances_indices)], dim=0, keepdim=True).permute(1, 0))
+	    
+            sorted_assigned_sets = [assigned_sets[k] for k in index_list]
             if self.cluster_vis:
                 return sorted_assigned_sets
-
-        min_dis = min_dis / y.shape[0]
-        max_dis = max_dis / y.shape[0]
+		    
+	    y[i][0:self.bags_len, :][assigned_sets['0'], :] = c_0_rate * y[i][0:self.bags_len, :][assigned_sets['0'], :]
+            y[i][0:self.bags_len, :][assigned_sets['1'], :] = c_1_rate * y[i][0:self.bags_len, :][assigned_sets['1'], :]
+            y[i][0:self.bags_len, :][assigned_sets['2'], :] = c_2_rate * y[i][0:self.bags_len, :][assigned_sets['2'], :]
+		    
         final_y = torch.mean(y, dim=1, keepdim=True)
         final_y = torch.reshape(final_y, (final_y.shape[0], final_y.shape[2]))
         y_logits = self.head(final_y)
         if self.feat_extract:
             return final_y
         else:
-            return y_logits, min_dis, max_dis
+            return y_logits, d_reg
+
+
 
 class MIL_Parallel_Head_ub(nn.Module):
     def __init__(self, base_model = None, class_num = 3, seed=None, batch_size = 2, bags_len = 1042, model_stats = 'train',abla_type='tic',feat_extract=False, cluster_vis=False, bag_weight=False):
