@@ -1,14 +1,14 @@
-# C^4MIL: An End-to-End Causality-Enhanced Multiple Instance Adaptive Clustering Framework 
+# C4MIL: An End-to-End Causality-Enhanced Multiple Instance Adaptive Clustering Framework 
 
 ## :fire: News
 
-- [2025/07/15] Our manuscript was currently submitted to _IEEE International Conference on Bioinformatics and Biomedicine (BIBM)_.
+- [2025/07/15] Our manuscript was currently submitted to AAAI 2026.
 
 
 
 ## :rocket: Pipeline
 
-Here's an overview of our **Manifold-constrained Adaptive Clustering (MacNet)** method:
+Here's an overview of our **C4MIL** method:
 
 ![Figure 1](./images/C4MIL_main.png)
 
