@@ -140,20 +140,22 @@ class TgiClustering():
         return assiged_set
 
 class Sef_Cluster(nn.Module):
-    def __init__(self, k_nums = 3, sel_dis = 'liad', train_iters = 50, p = 1, feature_lens = 768):
+    def __init__(self, k_nums = 3, sel_dis = 'liad', train_iters = 50, p = 1, r=10, feature_lens = 768):
         super(Sef_Cluster, self).__init__()
         self.k_nums = k_nums
         self.sel_dis = sel_dis
         self.train_iters = train_iters
         self.p = p
+	self.r = r
         self.feature_lens = feature_lens
-	self.init_w = torch.nn.Parameter(torch.randn(self.feature_lens),  requires_grad=True)
+	self.init_w = torch.nn.Parameter(torch.randn(self.r,self.feature_lens),  requires_grad=True)
         self.inst_adapt_w = self.create_adapt_w(self.init_w)
         self.inst_adapt_lamda = 0.1
 
     def create_adapt_w(self,w):
-        # diag constraints
-	rand_mat = torch.diag(w)
+        # PSD constraints
+        rand_mat = w.T @ w
+        rand_mat = rand_mat / rand_mat.max()
         adapt_w = rand_mat.cuda(0)
         return adapt_w
 
