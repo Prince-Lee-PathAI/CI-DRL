@@ -30,7 +30,7 @@ def view_results(mil_feature=None, mil_head=None, train_loader=None,
             for train_img in train_img_list:
                 train_pre_y = torch.cat((train_pre_y, mil_feature(train_img.cuda())))
             train_pre_y = train_pre_y[1:]
-            train_pre_y, _, _ = mil_head(train_pre_y)
+            train_pre_y, _ = mil_head(train_pre_y)
             train_loss.append(loss_fn(train_pre_y, train_label).detach().cpu().numpy())
             train_pre_label = torch.argmax(train_pre_y, dim=1)
         train_acc.append(accuracy_score(train_label.detach().cpu().numpy(),
@@ -53,7 +53,7 @@ def testing_for_parallel(mil_feature=None, mil_head=None,class_num=None,
             for img in img_list:
                 pre_y = torch.cat((pre_y, mil_feature(img.cuda())))
             pre_y = pre_y[1:]
-            pre_y, _, _ = mil_head(pre_y)
+            pre_y, _ = mil_head(pre_y)
             test_pre_label = torch.argmax(pre_y, dim=1)
             test_acc.append(accuracy_score(label.detach().cpu().numpy(),
                                         test_pre_label.detach().cpu().numpy()))
