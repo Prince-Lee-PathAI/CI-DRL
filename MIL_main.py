@@ -162,16 +162,16 @@ if __name__ == '__main__':
                 default=f'/data/MIL/Datasets/{dataset_root}/Test')
     ### Parallel save
     paras.add_argument('--weights_save_path', type=str,
-                        default=f'/data/MIL/MMvC/Weights_Result/{dataset_root[:6]}')
+                        default=f'')
 
     ### Parallel test
     paras.add_argument('--test_weights_feature', type=str,
-                        default=r'/data/MIL/MMvC/Weights_Result/Larynx/SwinT_sota_Feature3_ValAcc_0.9057971014492754_Epoch74.pth')
+                        default=r'')
     paras.add_argument('--test_weights_head', type=str,
-                        default=r'/data/MIL/MMvC/Weights_Result/Larynx/SwinT_sota_Head3_ValAcc_0.9057971014492754_Epoch74.pth')
+                        default=r'')
     ### Pretrained
     paras.add_argument('--pretrained_weights_path', type=str,
-                default=r'/data/MIL/MMvC/Weights/SwinT/swin_tiny_patch4_window7_224_22k.pth')
+                default=r'swin_tiny_patch4_window7_224_22k.pth')
 
     args = paras.parse_args()
     seed_everything(args.random_seed)
