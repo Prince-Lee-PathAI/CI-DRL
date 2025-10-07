@@ -1,14 +1,14 @@
-# C4MIL: An End-to-End Causality-Enhanced Multiple Instance Adaptive Clustering Framework 
+# Towards Interpretable Whole Slide Image Analysis: Counterfactual Inference Based Disentangled Representation Learning
 
 ## :fire: News
 
-- [2025/07/15] Our manuscript was currently submitted to AAAI 2026.
+- TBD.
 
 
 
 ## :rocket: Pipeline
 
-Here's an overview of our **C4MIL** method:
+Here's an overview of our **CI-DRL** method:
 
 ![Figure 1](./images/C4MIL_main.png)
 
