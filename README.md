@@ -1,5 +1,4 @@
-# Towards Interpretable Whole Slide Image Analysis: Counterfactual Inference Based Disentangled Representation Learning
-
+# Positive Semi-definite Latent Factor Grouping-Boosted Cluster-reasoning Instance Disentangled Learning for WSI Representation
 ## :fire: News
 
 - TBD.
@@ -8,7 +7,7 @@
 
 ## :rocket: Pipeline
 
-Here's an overview of our **CI-DRL** method:
+Here's an overview of our **PG-CIDL** method:
 
 ![Figure 1](./images/C4MIL_main.png)
 
